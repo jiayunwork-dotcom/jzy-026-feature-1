@@ -143,6 +143,10 @@ func (b *Segments) locate(theta float64) *Segment {
 
 func isDwell(kind string) bool { return kind == "outer_dwell" || kind == "inner_dwell" }
 
+// SegmentAt 返回 theta（本片循环内角度，度）所在的段，归属约定与 locate 相同：
+// 段界点有一侧是停歇段时归停歇段，运动段直接相接时归从该点开始的段。
+func (b *Segments) SegmentAt(theta float64) *Segment { return b.locate(theta) }
+
 func dwellMotion(level, theta, t float64) kinematics.Motion {
 	return kinematics.Motion{Theta: theta, Time: t, S: level, V: 0, A: 0, J: 0}
 }

@@ -1,5 +1,5 @@
-// Package store 负责规律配方与循环档的本地文件持久化。
-// 每条配方/循环档存为 data 目录下一个 JSON 文件，读写互斥保护。
+// Package store 负责规律配方、循环档与凸轮组的本地文件持久化。
+// 每条配方/循环档/凸轮组存为 data 目录下一个 JSON 文件，读写互斥保护。
 package store
 
 import (
@@ -14,6 +14,7 @@ import (
 	"sync"
 
 	"camfollower/internal/cycle"
+	"camfollower/internal/group"
 	"camfollower/internal/law"
 )
 
@@ -212,6 +213,56 @@ func (s *Store) ListCycles() ([]CycleRecord, error) {
 			continue
 		}
 		out = append(out, r)
+	}
+	return out, nil
+}
+
+// SaveGroup 校验并原子写入一组凸轮（同名覆盖）。
+// 相位角在写入前应由调用方规约到一周以内。
+func (s *Store) SaveGroup(g group.Group) error {
+	if err := g.Validate(); err != nil {
+		return err
+	}
+	if err := checkName(g.Name); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return atomicWriteJSON(s.dir, "group_"+g.Name+".json", g)
+}
+
+func (s *Store) GetGroup(name string) (group.Group, error) {
+	if err := checkName(name); err != nil {
+		return group.Group{}, err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var g group.Group
+	if err := readJSONFile(s.dir, "group_"+name+".json", &g); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return group.Group{}, fmt.Errorf("%w: 凸轮组 %q", ErrNotFound, name)
+		}
+		return group.Group{}, err
+	}
+	return g, nil
+}
+
+// ListGroups 按名序列出全部凸轮组。
+func (s *Store) ListGroups() ([]group.Group, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	files, err := filepath.Glob(filepath.Join(s.dir, "group_*.json"))
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(files)
+	out := make([]group.Group, 0, len(files))
+	for _, f := range files {
+		var g group.Group
+		if err := readJSONFile(f, "", &g); err != nil {
+			continue // 损坏文件跳过，不影响列表服务
+		}
+		out = append(out, g)
 	}
 	return out, nil
 }
