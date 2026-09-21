@@ -143,6 +143,13 @@ func (b *Segments) locate(theta float64) *Segment {
 
 func isDwell(kind string) bool { return kind == "outer_dwell" || kind == "inner_dwell" }
 
+// Locate 是 locate 的导出版：返回本片循环内角度 theta 所在的段，
+// 段界归属约定与内部完全一致，供相位层按局部转角查段。
+func (b *Segments) Locate(theta float64) *Segment { return b.locate(theta) }
+
+// IsMotion 报告段类型是否为运动段（升程或回程），即该片“在动”。
+func IsMotion(kind string) bool { return kind == "rise" || kind == "return" }
+
 func dwellMotion(level, theta, t float64) kinematics.Motion {
 	return kinematics.Motion{Theta: theta, Time: t, S: level, V: 0, A: 0, J: 0}
 }

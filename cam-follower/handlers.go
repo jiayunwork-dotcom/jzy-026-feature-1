@@ -27,6 +27,12 @@ func routes(st *store.Store) http.Handler {
 	mux.HandleFunc("POST /lift", liftCurvePOST(st))
 	mux.HandleFunc("GET /cycle-curve", cycleCurveGET(st))
 	mux.HandleFunc("POST /cycle-curve", cycleCurvePOST(st))
+	mux.HandleFunc("GET /groups", listGroups(st))
+	mux.HandleFunc("POST /groups", putGroup(st))
+	mux.HandleFunc("GET /groups/{name}", getGroup(st))
+	mux.HandleFunc("GET /groups/{name}/state", groupState(st))
+	mux.HandleFunc("GET /groups/{name}/windows", groupWindows(st))
+	mux.HandleFunc("POST /groups/{name}/check", groupCheck(st))
 	return mux
 }
 
